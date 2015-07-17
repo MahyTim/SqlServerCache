@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dapper;
+using SQLServerCache.Demo.TestModel;
 
 namespace SQLServerCache.Demo
 {
@@ -13,10 +14,20 @@ namespace SQLServerCache.Demo
     {
         static void Main(string[] args)
         {
-            var p = new Persons();
-            for (int i = 0; i < 5000; i++)
+            var p = new Recipes();
+            for (int i = 0; i < 1000; i++)
             {
-                p.Items.Add(new Person() { Age = 10, Name = "Frans" });
+                p.Items.Add(new Compound()
+                {
+                    Code = Guid.NewGuid().ToString(),
+                    Description = Guid.NewGuid().ToString(),
+                    CompositionRows = new List<CompositionRow>(
+                        Enumerable.Range(1, 25).Select(z => new CompositionRow()
+                        {
+                            Code = z.ToString(),
+                            Amount = 10
+                        }))
+                });
             }
 
             var databaseName = "TestCaching";
@@ -29,7 +40,7 @@ namespace SQLServerCache.Demo
                 connection.Execute($"DELETE FROM {databaseName}.[Cache].[CacheItemMetaData]");
 
                 connection.Open();
-                int count = 1000;
+                int count = 500;
                 var ms = Stopwatch.StartNew();
                 for (int i = 0; i < count; i++)
                 {
@@ -41,10 +52,10 @@ namespace SQLServerCache.Demo
                 ms.Start();
                 for (int i = 0; i < count; i++)
                 {
-                    var found = client.TryGet<Persons>("test" + i);
+                    var found = client.TryGet<Recipes>("test" + i);
                 }
                 Console.WriteLine("Read/Item: " + ms.ElapsedMilliseconds / count);
-                var notFound = client.TryGet<Person>("notfound");
+                var notFound = client.TryGet<Recipe>("notfound");
                 Debug.Assert(notFound == null);
 
             }

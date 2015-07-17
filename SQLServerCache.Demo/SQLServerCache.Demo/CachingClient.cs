@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using Microsoft.Hadoop.Avro;
 using SQLServerCache.Demo.Helpers;
+using SQLServerCache.Demo.TestModel;
 
 namespace SQLServerCache.Demo
 {
@@ -13,7 +15,14 @@ namespace SQLServerCache.Demo
         public CachingClient(SqlConnection connection)
         {
             _connection = connection;
-            _settings = new AvroSerializerSettings() { Resolver = new AvroDataContractResolver(), GenerateDeserializer = true, GenerateSerializer = true, UseCache = true };
+            _settings = new AvroSerializerSettings()
+            {
+                Resolver = new AvroDataContractResolver(),
+                GenerateDeserializer = true,
+                GenerateSerializer = true,
+                UseCache = true,
+                KnownTypes = new List<Type>(typeof(Recipe).Assembly.GetTypes())
+            };
         }
 
         public void Dispose()
