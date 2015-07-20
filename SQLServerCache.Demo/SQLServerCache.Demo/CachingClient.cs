@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Runtime.Caching;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Hadoop.Avro;
 using SQLServerCache.Demo.Helpers;
 using SQLServerCache.Demo.TestModel;
@@ -13,20 +14,51 @@ namespace SQLServerCache.Demo
     {
         void AfterStore<T>(CacheItemMetaData metadata, T item) where T : class;
         T BeforeTryGet<T>(CacheItemMetaData metadata) where T : class;
+        void Evict(CacheItemMetaData metadata);
     }
 
     internal class InMemoryLocalBuffer : ILocalBuffer
     {
         private static readonly MemoryCache Internal = new MemoryCache("InMemoryLocalBuffer");
+        private static readonly ReaderWriterLockSlim CacheLock = new ReaderWriterLockSlim();
 
         public void AfterStore<T>(CacheItemMetaData metadata, T item) where T : class
         {
-            Internal.Add($"{metadata.InternalId}-{metadata.UpdatedTimestamp.Ticks}", item, new CacheItemPolicy());
+            CacheLock.EnterWriteLock();
+            try
+            {
+                Internal.Add($"{metadata.InternalId}-{metadata.UpdatedTimestamp.Ticks}", item, new CacheItemPolicy());
+            }
+            finally
+            {
+                CacheLock.ExitWriteLock();
+            }
         }
 
         public T BeforeTryGet<T>(CacheItemMetaData metadata) where T : class
         {
-            return Internal.Get($"{metadata.InternalId}-{metadata.UpdatedTimestamp.Ticks}") as T;
+            CacheLock.EnterReadLock();
+            try
+            {
+                return Internal.Get($"{metadata.InternalId}-{metadata.UpdatedTimestamp.Ticks}") as T;
+            }
+            finally
+            {
+                CacheLock.ExitReadLock();
+            }
+        }
+
+        public void Evict(CacheItemMetaData metadata)
+        {
+            CacheLock.EnterWriteLock();
+            try
+            {
+                Internal.Remove($"{metadata.InternalId}-{metadata.UpdatedTimestamp.Ticks}");
+            }
+            finally
+            {
+                CacheLock.ExitWriteLock();
+            }
         }
     }
 
@@ -54,9 +86,9 @@ namespace SQLServerCache.Demo
         {
         }
 
-        public void Store<T>(string key, T obj) where T : class
+        public void Store<T>(string key, T obj,int expireAfterMinutes) where T : class
         {
-            var item = StoredProcedures.AddOrRenewCacheItem(key, 5, _connection);
+            var item = StoredProcedures.AddOrRenewCacheItem(key, expireAfterMinutes, _connection);
 
             using (var outputStream = new BlobStreamWriter(_connection, "Cache", item))
             {
@@ -71,8 +103,14 @@ namespace SQLServerCache.Demo
         public T TryGet<T>(string key) where T : class
         {
             var item = StoredProcedures.GetCacheItemMetaDataOrNull(key, _connection);
-            if (item == null || item.IsExpired)
+            if (item == null)
                 return null;
+
+            if (item.IsExpired)
+            {
+                _localBuffer.Evict(item);
+                return null;
+            }
 
             var local = _localBuffer.BeforeTryGet<T>(item);
             if (local != null)

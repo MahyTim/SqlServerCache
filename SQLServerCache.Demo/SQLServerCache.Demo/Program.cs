@@ -64,7 +64,7 @@ namespace SQLServerCache.Demo
                 var ms = Stopwatch.StartNew();
                 for (int i = 0; i < count; i++)
                 {
-                    client.Store(keys[i], p);
+                    client.Store(keys[i], p, 1);
                 }
                 ms.Stop();
                 Console.WriteLine("Insert/Item: " + ms.ElapsedMilliseconds / count);
