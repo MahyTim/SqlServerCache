@@ -33,18 +33,38 @@ namespace SQLServerCache.Demo
             var databaseName = "TestCaching";
             var serverName = @"(localdb)\v11.0";
 
-            using (var connection = new SqlConnection($"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=true"))
-            using (var client = new CachingClient(connection))
+            string connectionString = $"Data Source={serverName};Initial Catalog={databaseName};Integrated Security=true";
+            using (var connection = new SqlConnection(connectionString))
             {
                 connection.Execute($"DELETE FROM {databaseName}.[Cache].[CacheItem]");
                 connection.Execute($"DELETE FROM {databaseName}.[Cache].[CacheItemMetaData]");
+            }
 
+            DoStuff(connectionString, p);
+            DoStuff(connectionString, p);
+            DoStuff(connectionString, p);
+
+            var tasks = new List<Task>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                tasks.Add(Task.Factory.StartNew(() => DoStuff(connectionString, p)));
+            }
+            Task.WaitAll(tasks.ToArray());
+        }
+
+        private static void DoStuff(string connectionString, Recipes p)
+        {
+            int count = 500;
+            var keys = new List<string>(GetIds(500));
+            using (var connection = new SqlConnection(connectionString))
+            using (var client = new CachingClient(connection))
+            {
                 connection.Open();
-                int count = 500;
                 var ms = Stopwatch.StartNew();
                 for (int i = 0; i < count; i++)
                 {
-                    client.Store("test" + i, p);
+                    client.Store(keys[i], p);
                 }
                 ms.Stop();
                 Console.WriteLine("Insert/Item: " + ms.ElapsedMilliseconds / count);
@@ -52,12 +72,21 @@ namespace SQLServerCache.Demo
                 ms.Start();
                 for (int i = 0; i < count; i++)
                 {
-                    var found = client.TryGet<Recipes>("test" + i);
+                    var found = client.TryGet<Recipes>(keys[i]);
                 }
+                Console.WriteLine("Read: " + ms.ElapsedMilliseconds);
                 Console.WriteLine("Read/Item: " + ms.ElapsedMilliseconds / count);
                 var notFound = client.TryGet<Recipe>("notfound");
                 Debug.Assert(notFound == null);
+            }
+        }
 
+        private static IEnumerable<string> GetIds(int count)
+        {
+            for (int i = 0; i < count / 2; i++)
+            {
+                yield return "key" + i;
+                yield return Guid.NewGuid().ToString();
             }
         }
     }

@@ -11,10 +11,10 @@ namespace SQLServerCache.Demo.Helpers
         private readonly SqlDataReader _reader;
         private bool _disposed;
 
-        public BlobStreamReader(SqlConnection connection, string schemaName, string key)
+        public BlobStreamReader(SqlConnection connection, string schemaName, CacheItemMetaData item)
         {
-            _command = new SqlCommand($"SELECT TOP 1 i.Content FROM {schemaName}.[CacheItem] i JOIN {schemaName}.[CacheItemMetaData] md ON i.InternalId = md.InternalId WHERE md.[Key] = @key ORDER BY md.[Created] DESC", connection);
-            _command.Parameters.AddWithValue("key", key);
+            _command = new SqlCommand($"SELECT TOP 1 i.Content FROM {schemaName}.[CacheItem] i WHERE i.[InternalId] = @internalId", connection);
+            _command.Parameters.AddWithValue("internalId", item.InternalId);
             _reader = _command.ExecuteReader(CommandBehavior.SequentialAccess);
             _reader.Read();
         }
