@@ -60,6 +60,7 @@
     <Compile Include="Helpers\BlobStreamWriter.cs" />
     <Compile Include="CachingClient.cs" />
     <Compile Include="Helpers\BlobStreamReader.cs" />
+    <Compile Include="Helpers\CacheItemMetaData.cs" />
     <Compile Include="Helpers\StoredProcedures.cs" />
     <Compile Include="TestModel\CompositionRow.cs" />
     <Compile Include="TestModel\Compound.cs" />

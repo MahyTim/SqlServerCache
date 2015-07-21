@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -23,12 +22,4 @@ namespace SQLServerCache.Demo.Helpers
             return item;
         }
     }
-
-    public class CacheItemMetaData
-    {
-        public long InternalId { get; set; }
-        public DateTime UpdatedTimestamp { get; set; }
-        public bool IsExpired { get; set; }
-    }
-
 }
