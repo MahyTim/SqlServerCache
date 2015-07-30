@@ -12,13 +12,13 @@ namespace SQLServerCache.Demo.Helpers
     {
         public static CacheItemMetaData GetCacheItemMetaDataOrNull(string key, SqlConnection connection)
         {
-            var item = connection.Query<CacheItemMetaData>("Cache.GetCacheItemMetaData", new { key = key }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+            var item = connection.Query<CacheItemMetaData>("Cache.GetCacheItemMetaData", new {key }, commandType: CommandType.StoredProcedure).FirstOrDefault();
             return item;
         }
 
         public static CacheItemMetaData AddOrRenewCacheItem(string key, int expireAfterMinutes, SqlConnection connection)
         {
-            var item = connection.Query<CacheItemMetaData>("Cache.AddOrRenewCacheItem", new { key = key, expireAfterMinutes = expireAfterMinutes }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+            var item = connection.Query<CacheItemMetaData>("Cache.AddOrRenewCacheItem", new {key, expireAfterMinutes }, commandType: CommandType.StoredProcedure).FirstOrDefault();
             return item;
         }
     }

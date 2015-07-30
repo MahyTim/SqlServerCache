@@ -122,7 +122,7 @@ namespace SQLServerCache.Demo
                 {
                     try
                     {
-                        return AvroSerializer.Create<T>(_settings).Deserialize(encoder) as T;
+                        return AvroSerializer.Create<T>(_settings).Deserialize(encoder);
                     }
                     catch (Exception)
                     {
